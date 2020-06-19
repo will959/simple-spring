@@ -10,6 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import java.lang.reflect.Field;
 import java.util.Set;
 
+/**
+ * 实现依赖注入
+ */
 @Slf4j
 public class DependencyInjector {
     /**
@@ -22,11 +25,11 @@ public class DependencyInjector {
     }
 
     /**
-     * 执行Ioc
+     * 执行Ioc 依赖注入
      */
     public void doIoc() {
         if (UtilCollection.isEmpty(beanContainer.getClasses())) {
-            log.warn("empty classset in BeanContainer");
+            log.warn("容器中的class对象为空");
             return;
         }
         //1.遍历Bean容器中所有的Class对象
@@ -46,7 +49,7 @@ public class DependencyInjector {
                     //5.获取这些成员变量的类型在容器里对应的实例
                     Object fieldValue = getFieldInstance(fieldClass, autowiredValue);
                     if (fieldValue == null) {
-                        throw new RuntimeException("unable to inject relevant type，target fieldClass is:" + fieldClass.getName() + " autowiredValue is : " + autowiredValue);
+                        throw new RuntimeException("无法从容器中获得对应类型的类，注入失败，target fieldClass is:" + fieldClass.getName() + " autowiredValue is : " + autowiredValue);
                     } else {
                         //6.通过反射将对应的成员变量实例注入到成员变量所在类的实例里
                         Object targetBean = beanContainer.getBean(clazz);
@@ -64,16 +67,16 @@ public class DependencyInjector {
      */
     private Object getFieldInstance(Class<?> fieldClass, String autowiredValue) {
         Object fieldValue = beanContainer.getBean(fieldClass);
+        //若直接找到的是spring管理的类就返回
         if (fieldValue != null) {
             return fieldValue;
-        } else {
-            Class<?> implementedClass = getImplementedClass(fieldClass, autowiredValue);
-            if (implementedClass != null) {
-                return beanContainer.getBean(implementedClass);
-            } else {
-                return null;
-            }
         }
+        //则找出其实现类，然后返回对应的bean
+        Class<?> implementedClass = getImplementedClass(fieldClass, autowiredValue);
+        if (implementedClass == null) {
+            return null;
+        }
+        return beanContainer.getBean(implementedClass);
     }
 
     /**
@@ -81,20 +84,20 @@ public class DependencyInjector {
      */
     private Class<?> getImplementedClass(Class<?> fieldClass, String autowiredValue) {
         Set<Class<?>> classSet = beanContainer.getClassesBySuper(fieldClass);
-        if (!UtilCollection.isEmpty(classSet)) {
-            if (UtilString.isEmpty(autowiredValue)) {
-                if (classSet.size() == 1) {
-                    return classSet.iterator().next();
-                } else {
-                    //如果多于两个实现类且用户未指定其中一个实现类，则抛出异常
-                    throw new RuntimeException("multiple implemented classes for " + fieldClass.getName() + " please set @Autowired's value to pick one");
-                }
+        if (UtilCollection.isEmpty(classSet)) {
+            return null;
+        }
+        if (UtilString.isEmpty(autowiredValue)) {
+            if (classSet.size() == 1) {
+                return classSet.iterator().next();
             } else {
-                for (Class<?> clazz : classSet) {
-                    if (autowiredValue.equals(clazz.getSimpleName())) {
-                        return clazz;
-                    }
-                }
+                //如果多于两个实现类且用户未指定其中一个实现类，则抛出异常
+                throw new RuntimeException("根据成员变量的类型，得到多个实现类：" + fieldClass.getName() + " 请指定一个实例进行注入 ，在autowired时加入value");
+            }
+        }
+        for (Class<?> clazz : classSet) {
+            if (autowiredValue.equals(clazz.getSimpleName())) {
+                return clazz;
             }
         }
         return null;

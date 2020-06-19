@@ -131,15 +131,6 @@ public class ClassUtil {
     }
 
     /**
-     * 获取classLoader
-     *
-     * @return 当前ClassLoader
-     */
-    public static ClassLoader getClassLoader() {
-        return Thread.currentThread().getContextClassLoader();
-    }
-
-    /**
      * 设置类的属性值
      *
      * @param field      成员变量
@@ -155,6 +146,15 @@ public class ClassUtil {
             log.error("setField error", e);
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * 获取classLoader
+     *
+     * @return 当前ClassLoader
+     */
+    public static ClassLoader getClassLoader() {
+        return Thread.currentThread().getContextClassLoader();
     }
 
 }

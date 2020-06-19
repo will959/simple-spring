@@ -11,6 +11,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Autowired {
+    // 模拟spring的 Qualifer注解 指定注入类
     String value() default "";
 }
 
